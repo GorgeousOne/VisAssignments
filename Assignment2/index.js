@@ -3,6 +3,39 @@ import * as d3 from "d3";
 
 // Task 1 your solution here
 
+async function loadData () {
+    return await d3.csv("./Spotify_Music_Data.csv", d3.autoType);
+}
+
+let spotifyData = {};
+const categoricalAttrib = "top genre";
+const numericalAttribs = ["danceability", "valence", "energy"];
+let uniqueCategories;
+
+loadData().then(data => {
+    console.log("data loaded, processing");
+    console.log(data);
+    let selectedCols = [categoricalAttrib].concat(numericalAttribs);
+    spotifyData["columns"] = selectedCols;
+    spotifyData["entries"] = [];
+
+    for (const entry of data) {
+        let filteredEntry = {}
+
+        for (const col of selectedCols) {
+            filteredEntry[col] = entry[col]
+        }
+        spotifyData.entries.push(filteredEntry)
+    }
+    let categories = spotifyData.entries.map(d => d[categoricalAttrib]);
+    uniqueCategories = categories.filter((value, index, self) => self.indexOf(value) === index);
+    console.log("all cats", uniqueCategories)
+    //draw
+    createLabel();
+    createScatterPlotMatrix(width, height);
+    createHorizontalParallelCoordinates(width, height / 2);
+
+})
 
 // Parent HTML element that contains the labels and the plots
 const parent = d3.select("div#visualization");
@@ -15,9 +48,6 @@ const height = 800;
 const selectedItems = new Set();
 
 
-createLabel();
-createScatterPlotMatrix(width, height);
-createHorizontalParallelCoordinates(width, height / 2);
 
 
 /**
@@ -39,8 +69,10 @@ function createScatterPlotMatrix(width, height) {
 
     const margin = { top: 10, left: 20, bottom: 20, right: 10 };
 
-    const grid_height = height / numerics.length;
-    const grid_width = width / numerics.length;
+    const numerics = ["danceability", "valence", "energy"]
+    const cellHeight = height / numerics.length;
+    const cellWidth = width / numerics.length;
+
     const fontSize = 10;
 
     const svg = parent.append("svg")
@@ -49,15 +81,15 @@ function createScatterPlotMatrix(width, height) {
     const scatterplot_matrix = svg.selectAll("g.scatterplot")
         .data(d3.cross(numerics, numerics))
         .join("g")
-        .attr("transform", (d, i) => "translate(" + (i % numerics.length) * grid_width + "," + Math.floor(i / numerics.length) * grid_height + ")");
+        .attr("transform", (d, i) => "translate(" + (i % numerics.length) * cellWidth + "," + Math.floor(i / numerics.length) * cellHeight + ")");
 
     scatterplot_matrix.each(function (d) { // each pair from cross combination
         const g = d3.select(this);
+        scatterPlot(d[0], d[1], g, cellWidth, cellHeight, margin);
 
-        scatterPlot(d[0], d[1], g, grid_width, grid_height, margin);
 
-
-        const labelXPosition = (grid_width - margin.right - margin.left) / 2 + margin.left;
+        
+        const labelXPosition = (cellWidth - margin.right - margin.left) / 2 + margin.left;
         const labelYPosition = 10;
 
         // label the same attribute axis
@@ -86,6 +118,48 @@ function createScatterPlotMatrix(width, height) {
 function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
 
     // Add your solution here
+    const axisYwidth = width - margin.left - margin.right;
+    const axisXheight = height - margin.top - margin.bottom;
+
+    let keysX = spotifyData.entries.map(d => d[labelX]);
+    let valuesY = spotifyData.entries.map(d => d[labelY]);
+
+    scatterplotCell
+        .attr("width", axisYwidth)
+        .attr("height", axisXheight)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const xScale = d3.scaleLinear()
+        .domain([d3.min(keysX), d3.max(keysX)])
+        .range([0, axisYwidth]);
+
+    const yScale = d3.scaleLinear()
+        .domain([d3.min(valuesY), d3.max(valuesY)])
+        .range([axisXheight, 0]);
+
+    const colorScale = d3.scaleOrdinal()
+        .domain(uniqueCategories)
+        .range(d3.schemePuOr[8])
+
+    scatterplotCell.selectAll("circle")
+        .data(keysX)
+        .enter()
+        .append("circle")
+        .attr("cx", (d) => xScale(d))
+        .attr("cy", (d, i) => yScale(valuesY[i]))
+        .attr("r", 2)
+        .attr("fill", (d, i) => colorScale(uniqueCategories[i]));
+
+    const xAxis = d3.axisBottom(xScale);
+    const yAxis = d3.axisLeft(yScale);
+
+    scatterplotCell.append("g")
+        .attr("transform", `translate(0,${axisXheight})`)
+        .call(xAxis);
+
+    scatterplotCell.append("g")
+        .call(yAxis);
 
     const brush = d3.brush()
         .extent([
