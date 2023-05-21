@@ -8,8 +8,9 @@ async function loadData () {
 }
 
 let spotifyData = {};
-const categoricalAttrib = "top genre";
+const categoricalAttrib = "year";
 const numericalAttribs = ["danceability", "valence", "energy"];
+let categories;
 let uniqueCategories;
 
 loadData().then(data => {
@@ -27,7 +28,7 @@ loadData().then(data => {
         }
         spotifyData.entries.push(filteredEntry)
     }
-    let categories = spotifyData.entries.map(d => d[categoricalAttrib]);
+    categories = spotifyData.entries.map(d => d[categoricalAttrib]);
     uniqueCategories = categories.filter((value, index, self) => self.indexOf(value) === index);
     console.log("all cats", uniqueCategories)
     //draw
@@ -140,7 +141,7 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
 
     const colorScale = d3.scaleOrdinal()
         .domain(uniqueCategories)
-        .range(d3.schemePuOr[8])
+        .range(["#9e0142","#d53e4f","#f46d43","#fdae61","#fee08b","#e6f598","#abdda4","#66c2a5","#3288bd","#5e4fa2"])
 
     scatterplotCell.selectAll("circle")
         .data(keysX)
@@ -149,7 +150,7 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
         .attr("cx", (d) => xScale(d))
         .attr("cy", (d, i) => yScale(valuesY[i]))
         .attr("r", 2)
-        .attr("fill", (d, i) => colorScale(uniqueCategories[i]));
+        .attr("fill", (d, i) => colorScale(categories[i]));
 
     const xAxis = d3.axisBottom(xScale);
     const yAxis = d3.axisLeft(yScale);
