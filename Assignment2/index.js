@@ -11,7 +11,7 @@ const margin = { top: 10, left: 20, bottom: 20, right: 10 };
 const pointSize = 1;
 const pointSizeBrushed = 2;
 
-let spotifyData = {};
+let filteredData = {};
 const categoricalAttrib = "year";
 const numericalAttribs = ["danceability", "valence", "energy"];
 let categories;
@@ -22,31 +22,31 @@ loadData().then(data => {
     console.log("data loaded, processing");
     console.log(data);
     let selectedCols = [categoricalAttrib].concat(numericalAttribs);
-    spotifyData["columns"] = selectedCols;
-    spotifyData["entries"] = [];
+    filteredData["columns"] = selectedCols;
+    filteredData["entries"] = [];
 
+    //create filtered data object only with selected columns
     for (const entry of data) {
         let filteredEntry = {}
-        // if (entry["year"] < 2017) {
-        //     continue;
-        // }
+        // if (entry["year"] < 2017) continue;
+
         for (const col of selectedCols) {
             filteredEntry[col] = entry[col]
         }
-        spotifyData.entries.push(filteredEntry)
+        filteredData.entries.push(filteredEntry)
     }
-    categories = spotifyData.entries.map(d => d[categoricalAttrib]);
+    //derive the values of the categorical attribute from all the data
+    categories = filteredData.entries.map(d => d[categoricalAttrib]);
+    //create a list of unique categories
     uniqueCategories = categories.filter((value, index, self) => self.indexOf(value) === index);
+    //create a color scale for all plots
     colorScale = d3.scaleOrdinal()
         .domain(uniqueCategories)
-        // .range(["#9e0142","#d53e4f","#f46d43","#fdae61","#fee08b","#e6f598","#abdda4","#66c2a5","#3288bd","#5e4fa2"])
         .range(d3.schemeCategory10)
 
-    //draw
     createLabel();
     createScatterPlotMatrix(width, height);
     createHorizontalParallelCoordinates(width, height / 2);
-
 })
 
 // Parent HTML element that contains the labels and the plots
@@ -66,11 +66,13 @@ const selectedItems = new Set();
 function createLabel() {
     let textHeight = 20;
     let textOffset = 6;
-    // Add your solution here
+
+    //create a svg with size according to count of labels
     const svg = d3.select("svg#labels")
         .attr("viewBox", [0, 0, width, margin.top + margin.bottom + textHeight * uniqueCategories.length])
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
+    //draw a bullet point with the color of each label
     svg.selectAll("circle")
         .data(uniqueCategories)
         .enter()
@@ -80,6 +82,7 @@ function createLabel() {
         .attr("r", 5)
         .attr("fill", (d) => colorScale(d));
 
+    //write a text next to each bullet
     svg.selectAll("text")
         .data(uniqueCategories)
         .enter()
@@ -146,27 +149,28 @@ function createScatterPlotMatrix(width, height) {
  */
 function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
 
-    // Add your solution here
+    //calculate sizes for x and y axes
     const axisYwidth = width - margin.left - margin.right;
     const axisXheight = height - margin.top - margin.bottom;
 
-    let keysX = spotifyData.entries.map(d => d[labelX]);
-    let valuesY = spotifyData.entries.map(d => d[labelY]);
+    //filter which values will be x and y coordinates
+    let keysX = filteredData.entries.map(d => d[labelX]);
+    let valuesY = filteredData.entries.map(d => d[labelY]);
 
     scatterplotCell
         .attr("width", axisYwidth)
-        .attr("height", axisXheight)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("height", axisXheight);
 
+    //define axes ranges
     const xScale = d3.scaleLinear()
-        .domain([d3.min(keysX), d3.max(keysX)])
+        .domain(d3.extent(keysX))
         .range([0, axisYwidth]);
 
     const yScale = d3.scaleLinear()
-        .domain([d3.min(valuesY), d3.max(valuesY)])
+        .domain(d3.extent(valuesY))
         .range([axisXheight, 0]);
 
+    //draw scatter plot dots
     scatterplotCell.selectAll("circle")
         .data(keysX)
         .enter()
@@ -176,6 +180,7 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
         .attr("r", pointSize)
         .attr("fill", (d, i) => colorScale(categories[i]));
 
+    //create visual graph axes
     const xAxis = d3.axisBottom(xScale);
     const yAxis = d3.axisLeft(yScale);
 
@@ -186,6 +191,7 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
     scatterplotCell.append("g")
         .call(yAxis);
 
+    //add a brush event listener
     const brush = d3.brush()
         .extent([
             [margin.left, margin.top],
@@ -197,18 +203,19 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
 
 
     function brushed(brushEvent) {
-
         const selection = brushEvent.selection
+        //get all dots in the plot
         let circles = d3.select(this).selectAll("circle");
-        // Add solution here
+
         if (selection) {
+            //set different circle radii for dots inside / outside selection
             circles.attr("r", function(d) {
                 let circ = d3.select(this);
                 let isInside = isInsideBrush(selection, circ.attr("cx"), circ.attr("cy"));
                 return isInside ? pointSizeBrushed : pointSize;
             });
         } else {
-            // If no brush selection, reset the radius of all circles
+            // reset the radius of all circles if no brush selection
             circles.attr("r", pointSize);
         }
     }
@@ -220,7 +227,6 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
         else
             return false;
     }
-
 }
 
 
@@ -232,31 +238,46 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
 
 function createHorizontalParallelCoordinates(width, height) {
 
-    // Add your solution here
     const svg = parent.append("svg")
         .attr("viewBox", [0, 0, width, height]);
 
     width -= margin.left + margin.right;
     height -= margin.top + margin.bottom;
 
-    svg.attr("width", width)
-        .attr("height", height)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-
     let attribValueLists = {};
     let scalesY = {};
 
+    //create x-axis to distribute numerical attribute names
+    let xScale = d3.scaleBand()
+        .domain(numericalAttribs)
+        .range([margin.left, margin.left + width]);
+
+    let axisX = d3.axisBottom(xScale);
+
+    //create y-axes for each attribute
     for (let attrib of numericalAttribs) {
-        let values  = spotifyData.entries.map(d => d[attrib]);
+        //filter all values of one attributes
+        let values  = filteredData.entries.map(d => d[attrib]);
         attribValueLists[attrib] = values;
         scalesY[attrib] = d3.scaleLinear()
             .domain([d3.min(values), d3.max(values)])
-            .range([height, 0]);
+            .range([margin.top + height, margin.top]);
+
+        const axisY = d3.axisLeft(scalesY[attrib]);
+
+        //draw y-axes
+        svg.append("g")
+            .attr("transform", `translate(${xScale(attrib) + xScale.bandwidth() / 2}, 0)`)
+            .call(axisY);
     }
 
-    console.log(attribValueLists)
+    //draw x-axis
+    svg.append('g')
+        .attr("class", "y-axis")
+        .attr("transform", `translate(0, ${margin.top + height})`)
+        .call(axisX);
 
+    //plot lines for all attributes between the values of ith and i + 1st attribute
     for (let k = 0; k < numericalAttribs.length - 1; ++k) {
         let attrib1 = numericalAttribs[k];
         let attrib2 = numericalAttribs[k + 1];
@@ -266,41 +287,16 @@ function createHorizontalParallelCoordinates(width, height) {
         let yScale1 = scalesY[attrib1];
         let scale2 = scalesY[attrib2];
 
-        let x1 = k * width / (numericalAttribs.length - 1);
-        let x2 = (k + 1) * width / (numericalAttribs.length - 1);
-
-        svg.selectAll(".line")
+        svg.selectAll("paths")
             .data(values1)
             .enter()
             .append("line")
-            .attr("x1", x1)
+            .attr("x1", xScale(attrib1) + xScale.bandwidth() / 2)
             .attr("y1", (d) => yScale1(d))
-            .attr("x2", x2)
+            .attr("x2", xScale(attrib2) + xScale.bandwidth() / 2 )
             .attr("y2", (d, i) => scale2(values2[i]))
             .style("stroke", (d, i) => colorScale(categories[i]))
             .style("opacity", 0.3);
-    }
-
-    let xScale = d3.scaleBand()
-        .domain(numericalAttribs)
-        .range([-1/4 * width, 5/4 * width]);
-
-    let axisX = d3.axisBottom(xScale);
-
-    svg.append('g')
-        .attr("transform", `translate(0, ${height})`)
-        .call(axisX);
-
-    for (let i = 0; i < numericalAttribs.length; ++i) {
-        let attrib = numericalAttribs[i];
-        let yScale = scalesY[attrib];
-
-        let dx = i * width / (numericalAttribs.length - 1);
-        const axisY = d3.axisLeft(yScale);
-
-        svg.append("g")
-            .attr("transform", `translate(${dx}, 0)`)
-            .call(axisY);
     }
 
     const brushWidth = 10;
@@ -310,17 +306,12 @@ function createHorizontalParallelCoordinates(width, height) {
             [brushWidth / 2, height - margin.bottom]
         ])
         .on("end", brushed);
-    // axes.call(brush);
-
-
+    axes.call(brush);
 
     function brushed(brushEvent, key) {
-
         const selection = brushEvent.selection
         const attributeName = key[0]
 
         // Add your code here
-
-
     }
 }
