@@ -25,7 +25,9 @@ loadData().then(data => {
 
     for (const entry of data) {
         let filteredEntry = {}
-
+        // if (entry["year"] < 2017) {
+        //     continue;
+        // }
         for (const col of selectedCols) {
             filteredEntry[col] = entry[col]
         }
@@ -35,7 +37,8 @@ loadData().then(data => {
     uniqueCategories = categories.filter((value, index, self) => self.indexOf(value) === index);
     colorScale = d3.scaleOrdinal()
         .domain(uniqueCategories)
-        .range(["#9e0142","#d53e4f","#f46d43","#fdae61","#fee08b","#e6f598","#abdda4","#66c2a5","#3288bd","#5e4fa2"])
+        // .range(["#9e0142","#d53e4f","#f46d43","#fdae61","#fee08b","#e6f598","#abdda4","#66c2a5","#3288bd","#5e4fa2"])
+        .range(d3.schemeCategory10)
 
     //draw
     createLabel();
@@ -62,8 +65,26 @@ const selectedItems = new Set();
  */
 function createLabel() {
     // Add your solution here
-}
+    const svg = d3.select("svg#labels")
+        .attr("viewBox", [0, 0, width, 200]);
 
+    svg.selectAll("circle")
+        .data(uniqueCategories)
+        .enter()
+        .append("circle")
+        .attr("cx", margin.left)
+        .attr("cy", (d, i) => margin.top + 20 * i)
+        .attr("r", 5)
+        .attr("fill", (d) => colorScale(d));
+
+    svg.selectAll("text")
+        .data(uniqueCategories)
+        .enter()
+        .append("text")
+        .attr("x", margin.left + 12)
+        .attr("y", (d, i) => margin.top + 6 + 20 * i)
+        .text((d) => d);
+}
 
 /**
  * Create Scatter Plot Matrix with the given width and height. The contents of each cell
