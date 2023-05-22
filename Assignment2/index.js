@@ -8,6 +8,8 @@ async function loadData () {
 }
 
 const margin = { top: 10, left: 20, bottom: 20, right: 10 };
+const pointSize = 1;
+const pointSizeBrushed = 2;
 
 let spotifyData = {};
 const categoricalAttrib = "year";
@@ -58,22 +60,23 @@ const height = 800;
 const selectedItems = new Set();
 
 
-
-
 /**
  * Task 2
  */
 function createLabel() {
+    let textHeight = 20;
+    let textOffset = 6;
     // Add your solution here
     const svg = d3.select("svg#labels")
-        .attr("viewBox", [0, 0, width, 200]);
+        .attr("viewBox", [0, 0, width, margin.top + margin.bottom + textHeight * uniqueCategories.length])
+        .attr("transform", `translate(${margin.left},${margin.top})`);
 
     svg.selectAll("circle")
         .data(uniqueCategories)
         .enter()
         .append("circle")
         .attr("cx", margin.left)
-        .attr("cy", (d, i) => margin.top + 20 * i)
+        .attr("cy", (d, i) => margin.top + textHeight * i)
         .attr("r", 5)
         .attr("fill", (d) => colorScale(d));
 
@@ -82,7 +85,7 @@ function createLabel() {
         .enter()
         .append("text")
         .attr("x", margin.left + 12)
-        .attr("y", (d, i) => margin.top + 6 + 20 * i)
+        .attr("y", (d, i) => margin.top + textOffset + textHeight * i)
         .text((d) => d);
 }
 
@@ -115,9 +118,6 @@ function createScatterPlotMatrix(width, height) {
     scatterplot_matrix.each(function (d) { // each pair from cross combination
         const g = d3.select(this);
         scatterPlot(d[0], d[1], g, cellWidth, cellHeight, margin);
-
-
-        
         const labelXPosition = (cellWidth - margin.right - margin.left) / 2 + margin.left;
         const labelYPosition = 10;
 
@@ -173,7 +173,7 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
         .append("circle")
         .attr("cx", (d) => xScale(d))
         .attr("cy", (d, i) => yScale(valuesY[i]))
-        .attr("r", 2)
+        .attr("r", pointSize)
         .attr("fill", (d, i) => colorScale(categories[i]));
 
     const xAxis = d3.axisBottom(xScale);
@@ -199,11 +199,18 @@ function scatterPlot(labelX, labelY, scatterplotCell, width, height, margin) {
     function brushed(brushEvent) {
 
         const selection = brushEvent.selection
-        const scatterPLotD3 = d3.select(this) //  this always refers to the current plot
-
-
+        let circles = d3.select(this).selectAll("circle");
         // Add solution here
-
+        if (selection) {
+            circles.attr("r", function(d) {
+                let circ = d3.select(this);
+                let isInside = isInsideBrush(selection, circ.attr("cx"), circ.attr("cy"));
+                return isInside ? pointSizeBrushed : pointSize;
+            });
+        } else {
+            // If no brush selection, reset the radius of all circles
+            circles.attr("r", pointSize);
+        }
     }
 
     // A function that return TRUE or FALSE according if a dot is in the selection or not
@@ -232,8 +239,6 @@ function createHorizontalParallelCoordinates(width, height) {
     width -= margin.left + margin.right;
     height -= margin.top + margin.bottom;
 
-    // let keysX = spotifyData.entries.map(d => d[labelX]);
-    // let valuesY = spotifyData.entries.map(d => d[labelY]);
     svg.attr("width", width)
         .attr("height", height)
         .append("g")
@@ -255,13 +260,11 @@ function createHorizontalParallelCoordinates(width, height) {
     for (let k = 0; k < numericalAttribs.length - 1; ++k) {
         let attrib1 = numericalAttribs[k];
         let attrib2 = numericalAttribs[k + 1];
-        console.log("creating", attrib1, attrib2);
 
         let values1 = attribValueLists[attrib1];
         let values2 = attribValueLists[attrib2];
         let yScale1 = scalesY[attrib1];
         let scale2 = scalesY[attrib2];
-        console.log("line", attrib1, attrib2)
 
         let x1 = k * width / (numericalAttribs.length - 1);
         let x2 = (k + 1) * width / (numericalAttribs.length - 1);
