@@ -12,36 +12,77 @@ export function lineChart({
   svg.attr("viewBox", [0, 0, width, height]).style("font", "10px sans-serif");
 
   // define an attribute for y axis
-  // const attributeY =
+  const attributeY = data.map(movie => movie.totalGross);
 
   // define an attribute for x axis
-  // const attributeX =
+  const attributeX = data.map(movie => movie.day);
 
   // define scale for the number of days on the x-axis
-  // const scaleX =
+  const scaleX = d3.scaleLinear()
+          .domain([1, d3.max(attributeX)])
+          // .range([margin.left, width - margin.right])
+          .range([0, width - margin.right])
 
   // define scale for total weekly gross on the y-axis
-  // const scaleY =
+  const scaleY = d3.scaleLinear()
+        .domain([0, d3.max(attributeY)])
+        .range([height - margin.top, margin.bottom]);
 
   // group the data by movie title
   const movies = d3
     .groups(data, (d) => d.title)
     .map(([key, values]) => ({ key, values }));
 
-  console.log(movies);
+  console.log("movies", movies)
+
 
   // draw the x-axis
+  const axisX = d3.axisBottom(scaleX);
+  svg.append("g")
+      .attr("transform", `translate(${margin.left},${height - margin.top})`)
+      .call(axisX);
 
   // put the text label for x axis
+  svg.append("text")
+      .attr("class", "x label")
+      .attr("text-anchor", "end")
+      .attr("x", width)
+      .attr("y", height - 6)
+      .text("days after release");
 
   // draw the y-axis
+  const axisY = d3.axisLeft(scaleY).tickFormat(d => { return bigMoneyFormat(d); });
+  svg.append("g")
+      .attr("transform", `translate(${margin.left},${0})`)
+      .call(axisY);
 
   // put the text label for y axis
+  svg.append("text")
+      .attr("class", "y label")
+      .attr("text-anchor", "end")
+      .attr("y", 6)
+      .attr("dy", ".75em")
+      .attr("transform", "rotate(-90)")
+      .text("total gross in $");
 
   // color scale by movie title
-  // const color =
+  const color = d3.scaleOrdinal()
+      .domain(movies.map(d => d.key))
+      .range(d3.schemeCategory10)
 
   // draw a line for each time series as well as labels
+  let lineGen = d3.line()
+      .x(d => margin.left + scaleX(d.day))
+      .y(d => scaleY(d.totalGross));
+
+  svg.selectAll("path")
+      .data(movies)
+      .enter()
+      .append("path")
+      .attr("d", d => lineGen(d.values))
+      .attr("fill", "none")
+      .attr("stroke", d => color(d.key))
+      .attr("stroke-width", 2);
 
   // setup a group node for each time series
   const series = svg
