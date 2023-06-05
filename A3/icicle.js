@@ -56,9 +56,10 @@ export function icicle({
   }
 
   // create string with formatted name and gross for a franchise
-  const formatText = data => {
-    let name = data.data.name ?? "";
-    return `${shortenText(name)} ${bigMoneyFormat(data.value)}`
+  const formatText = d => {
+    //select franchise name or movie title
+    let name = d.data.name ? d.data.name : d.data.title;
+    return `${shortenText(name)} ${bigMoneyFormat(d.value)}`
   }
 
   // setup text labels for each node
