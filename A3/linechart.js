@@ -76,6 +76,7 @@ export function lineChart({
 	svg.selectAll("path")
 		.data(movies)
 		.enter()
+		//draw separate line for each movie
 		.append("path")
 		.attr("d", d => lineGen(d.values))
 		.attr("fill", "none")

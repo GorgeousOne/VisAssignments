@@ -13,15 +13,17 @@ export function icicle({
 
   // define a partition layout as the root of the root
   const layout = d3.partition()
-      .size([width, height])
+      .size([height, width])
       .padding(1);
   layout(root);
 
   // compute the maximum depth of root from the root node
-  // const maxDepth =
+  const maxDepth = d3.max(root.descendants(), d => d.depth);
 
   // define a scale for the depth of the root
-  // const scaleX =
+  const scaleX = d3.scaleLinear()
+      .domain([1, maxDepth + 1])
+      .range([0, width])
 
   // setup the viewBox and font for the SVG
   svg.attr("viewBox", [0, 0, width, height]).attr("font-family", "sans-serif");
@@ -31,13 +33,20 @@ export function icicle({
       .selectAll("g")
       .data(root.descendants().filter((d) => d.depth > 0))
       .join("g")
-      .attr("transform", (d) => `translate(${d.x0}, ${d.y0})`);
+      .attr("transform", (d) => `translate(${scaleX(d.depth)}, ${d.x0})`);
 
   // create a rectangle for each node
   const rect = node.append("rect")
-      .attr("width", d => d.x1 - d.x0)
-      .attr("height", d => d.y1 - d.y0) //d.x1 - d.x0 - 1
-      .attr("fill-opacity", 0.2);
+      //recalculate width
+      .attr("width", width / maxDepth)
+      .attr("height", d => d.x1 - d.x0)
+      .attr("fill", d => {
+        //copy color from parent
+        while (d.depth > 1) d = d.parent;
+        return color(d.data.name);
+      })
+      //add decreasing opacity
+      .attr("fill-opacity", d => Math.pow(0.6, d.depth));
 
   const minFontSize = 4;
 
@@ -46,21 +55,22 @@ export function icicle({
     return Math.min(12, Math.max(minFontSize, d.x1 - d.x0 - 2));
   }
 
+  // create string with formatted name and gross for a franchise
   const formatText = data => {
-    let name = data.data.name !== undefined ? data.data.name : "";
-    return `${shortenText(name, 15)} ${bigMoneyFormat(data.value)}`
+    let name = data.data.name ?? "";
+    return `${shortenText(name)} ${bigMoneyFormat(data.value)}`
   }
 
   // setup text labels for each node
   // create text labels for each node
-  const text = node.append("text")
-      .filter(d => fontSize(d) >= minFontSize)
+  const text = node
+      //filter to small text away
+      .filter(d => fontSize(d) > minFontSize)
+      .append("text")
       .attr("x", 4)
-      .attr("y", 13)
+      .attr("y", d => fontSize(d))
       .text(d => formatText(d))
       .style("font-size", d => `${fontSize(d)}px`)
-
-  text.attr("transform", "rotate(90) translate(0, -20)")
 
   return svg.node();
 }
