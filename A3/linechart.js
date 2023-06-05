@@ -6,7 +6,7 @@ export function lineChart({
 							  data,
 							  width = 1000,
 							  height = 800,
-							  margin = {top: 30, right: 120, bottom: 30, left: 40},
+							  margin = {top: 30, right: 120, bottom: 30, left: 50},
 						  }) {
 	// setup the viewBox and font for the SVG
 	svg.attr("viewBox", [0, 0, width, height]).style("font", "10px sans-serif");
@@ -20,7 +20,6 @@ export function lineChart({
 	// define scale for the number of days on the x-axis
 	const scaleX = d3.scaleLinear()
 		.domain([1, d3.max(attributeX)])
-		// .range([margin.left, width - margin.right])
 		.range([margin.left, width - margin.right])
 
 	// define scale for total weekly gross on the y-axis
@@ -32,9 +31,6 @@ export function lineChart({
 	const movies = d3
 		.groups(data, (d) => d.title)
 		.map(([key, values]) => ({key, values}));
-
-	console.log("movies", movies)
-
 
 	// draw the x-axis
 	const axisX = d3.axisBottom(scaleX);
@@ -76,6 +72,7 @@ export function lineChart({
 		.y(d => scaleY(d.totalGross));
 
 	// draw a line for each time series as well as labels
+	// add the line as a path element
 	svg.selectAll("path")
 		.data(movies)
 		.enter()
@@ -86,7 +83,7 @@ export function lineChart({
 		.attr("stroke-width", 2)
 		.each(function (d) {
 			const lastDay = d.values.slice(-1)[0]
-			console.log(d.key, lastDay)
+			// add labels for the series
 			svg.append("text")
 				.attr("x", scaleX(lastDay.day))
 				.attr("y", scaleY(lastDay.totalGross) - 6)
@@ -100,10 +97,6 @@ export function lineChart({
 		.selectAll("g")
 		.data(movies)
 		.join("g");
-
-	// add the line as a path element
-
-	// add labels for the series
 
 
 	// Optional brushing task start here
@@ -192,5 +185,5 @@ export function lineChart({
 		}
 		return 0;
 	}
-	
+
 }
