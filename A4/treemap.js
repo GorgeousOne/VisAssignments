@@ -16,9 +16,13 @@ export function treemap({
 
 
   // INSERT YOUR CODE HERE
-  // const root = ...
-
-
+  const root = d3.hierarchy(data).sum(entry => entry.revenue);
+  d3.treemap()
+      .size([width, height])
+      .padding(2)
+      .tile(d3.treemapSliceDice)
+      (root);
+  console.log(root.leaves())
   // END OF YOUR CODE
 
   draw();
@@ -30,18 +34,28 @@ export function treemap({
     if (typeof (root) === "undefined") return;
 
     // create a group for each leaf node
-    // const leaf = ...
-
+    const leaf = svg.selectAll("g") // Select the group elements instead of rectangles
+        .data(root.leaves())
+        .join("g")
+        .attr('transform', d => `translate(${d.x0}, ${d.y0})`);
 
     // actually draw the rectangles
-    // leaf ...
+    leaf.append("rect")
+        .attr('width', d => d.x1 - d.x0)
+        .attr('height', d => d.y1 - d.y0)
+        .style("fill", d => {
+          // Copy color from parent
+          while (d.depth > 1) d = d.parent;
+          return color(d.data.name);
+        })
+        .attr("fill-opacity", 0.8);
 
     // setup labels for rectangles that are big enough
-    // const text = ...
-
     // add the name and the value as labels
-    // text
-
+    leaf.append("text")
+        .text(d => d.data.title)
+        .style("font-size", d => `${fontSize(d)}px`)
+        .attr("transform", "rotate(90) translate(5, -5)");
   }
 }
 
