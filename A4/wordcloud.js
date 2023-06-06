@@ -7,7 +7,7 @@ import cloud from "d3-cloud";
  */
 export function wordcloud({ svg, wordsPerGroup, selection }) {
   const width = 600;
-  const height = 200;
+  const height = 400;
   svg.attr("viewBox", [0, 0, width, height]);
 
   // group element, translated such that the origin is in the middle of the svg
@@ -16,7 +16,10 @@ export function wordcloud({ svg, wordsPerGroup, selection }) {
     .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
   // word size scale, you can play around with the range if you like
-  const size = d3.scaleLinear().range([10, 50000]);
+  const size = d3.scaleLinear().range([10, 50]);
+  const opacity = d3.scaleLinear()
+      .domain(size.range())
+      .range([0.25, 1]);
 
   // fill the select box with the options from the wordsPerGroup
   selection
@@ -32,8 +35,10 @@ export function wordcloud({ svg, wordsPerGroup, selection }) {
   // The layout should call the "draw()"-function on "end".
   const layout = cloud()
       .size([width, height]) // Specify the size of the word cloud layout
-      .rotate(0)
-      .padding(5) // Set the padding between words
+      .rotate(() => Math.round(4 * Math.random() - 2) / 2 * 60)
+      .padding(1)
+      .font("Impact")
+      .text(function(d) { return d[0]; })
       .on('end', draw);
 
   // end of TODO
@@ -47,7 +52,7 @@ export function wordcloud({ svg, wordsPerGroup, selection }) {
     let words = wordsPerGroup.get(group).slice(0, 100);
 
     //adjust the domain of the word size scale
-    // size.domain(d3.extent(words, (d) => d[1]));
+    size.domain(d3.extent(words, (d) => d[1]));
     // start of TODO: adjust the layout accordingly
     // call the layout with the words -> layout.words(....)
     // end of TODO
@@ -55,6 +60,7 @@ export function wordcloud({ svg, wordsPerGroup, selection }) {
     layout.words(words)
         .fontSize(d => size(d[1]))
         .start();
+    console.log(size.range()[0])
   }
 
   // complete the draw function to draw the word cloud
@@ -68,8 +74,11 @@ export function wordcloud({ svg, wordsPerGroup, selection }) {
         .enter()
         .append('text')
         .attr("text-anchor", "middle")
-        .style('font-size', d => size(d[1]) + "px")
-        .attr('transform', d => `translate(${d.x}, ${d.y})`)
+        .style('font-size', d => d.size + "px")
+        .style("font-family", "Impact")
+        .attr("fill", () => "#282828")
+        .attr("fill-opacity", d => opacity(d.size))
+        .attr('transform', d => `translate(${d.x}, ${d.y})  rotate(${d.rotate})`)
         .text(d => d[0]);
     // end of TODO
   }
