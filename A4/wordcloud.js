@@ -16,7 +16,7 @@ export function wordcloud({ svg, wordsPerGroup, selection }) {
     .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
   // word size scale, you can play around with the range if you like
-  const size = d3.scaleLinear().range([10, 50]);
+  const size = d3.scaleLinear().range([10, 50000]);
 
   // fill the select box with the options from the wordsPerGroup
   selection
@@ -30,35 +30,47 @@ export function wordcloud({ svg, wordsPerGroup, selection }) {
   // as "cloud()". Note, that the actual words will be
   // determined in the "update()"-function below.
   // The layout should call the "draw()"-function on "end".
-  // const layout =
-
+  const layout = cloud()
+      .size([width, height]) // Specify the size of the word cloud layout
+      .rotate(0)
+      .padding(5) // Set the padding between words
+      .on('end', draw);
 
   // end of TODO
   update();
   selection.on("change", update);
 
-
   function update() {
     // get the option of the select box
     const group = selection.property("value");
     // get the 100 most frequent words of the selected group
-    const words = wordsPerGroup.get(group).slice(0, 100);
+    let words = wordsPerGroup.get(group).slice(0, 100);
 
     //adjust the domain of the word size scale
-    size.domain(d3.extent(words, (d) => d[1]));
+    // size.domain(d3.extent(words, (d) => d[1]));
     // start of TODO: adjust the layout accordingly
     // call the layout with the words -> layout.words(....)
     // end of TODO
-
-    layout.start(); // then call layout.start() to start the layout
-
+    // then call layout.start() to start the layout
+    layout.words(words)
+        .fontSize(d => size(d[1]))
+        .start();
   }
 
   // complete the draw function to draw the word cloud
   function draw(words) {
-    // start of TODO: create the word cloud
-    // g.selectAll("text").data(words)
+    console.log(`#${words.length}`, words);
 
+    // start of TODO: create the word cloud
+    g.selectAll("text").remove();
+    g.selectAll("text")
+        .data(words)
+        .enter()
+        .append('text')
+        .attr("text-anchor", "middle")
+        .style('font-size', d => size(d[1]) + "px")
+        .attr('transform', d => `translate(${d.x}, ${d.y})`)
+        .text(d => d[0]);
     // end of TODO
   }
 }

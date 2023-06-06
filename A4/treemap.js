@@ -22,7 +22,6 @@ export function treemap({
       .padding(2)
       .tile(d3.treemapSliceDice)
       (root);
-  console.log(root.leaves())
   // END OF YOUR CODE
 
   draw();
