@@ -9,9 +9,18 @@ export function theoryQuestions({ svg }) {
     createQ1(svg, margin, width, height);
 
     // answer the questions by calling the function answerQ1
-    // answerQ1(svg, "wordcloud", "identify patterns"); // example
-
-}
+    // graph with multiple attributes
+    answerQ1(svg, "parallel coordinates", "discover multi-attribute correlation");
+    // is left
+    answerQ1(svg, "scatterplots", "identify patterns");
+    //locate if something is used exceptionally often
+    answerQ1(svg, "wordcloud", "locate outliers");
+    // MATHEMATICS
+    // the study of geometrical properties and spatial relations unaffected by the continuous change of shape or size of figures.
+    // idk tiles are pretty spatial?
+    answerQ1(svg, "icicle map", "browse topology");
+    // easy to view ups and downs
+    answerQ1(svg, "horizon charts", "compare trends");}
 
 /**
  *
