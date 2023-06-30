@@ -1,7 +1,7 @@
 #version 150
 #extension GL_ARB_explicit_attrib_location : require
 
-#define TASK 0
+//#define TASK 0
 #define ENABLE_LIGHTING 0
 #define ENABLE_BINARY_SEARCH 0
 #define USE_GRADIENT_VOLUME 0
@@ -189,7 +189,9 @@ void main()
     // Now we define a variable which will hold the final colour that the ray produces
     vec4 out_col = vec4(0.0, 0.0, 0.0, 0.0);
 
-#if TASK == 0 
+#define TASK 1
+
+#if TASK == 0
     // example - average intensity projection (X-ray)
     // In the average intensity projection method, each ray calculates the mean intensity value that it encounters while traversing the volume.
 
@@ -237,9 +239,16 @@ void main()
    
 #if TASK == 1 
     // TASK 1 - maximum intensity projection
+    float max_data_value = 0.f;
 
-
-#endif
+    while (inside_volume_bounds(sampling_pos))
+    {
+        float data_value = sample_data_volume(sampling_pos);
+        max_data_value = max(data_value, max_data_value);
+        sampling_pos  += ray_increment;
+    }
+    out_col = vec4(vec3(max_data_value), 1.f);
+    #endif
 
 #if TASK == 2 
     // TASK 2: first-hit iso-surface raycasting
