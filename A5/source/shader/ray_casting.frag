@@ -189,7 +189,7 @@ void main()
     // Now we define a variable which will hold the final colour that the ray produces
     vec4 out_col = vec4(0.0, 0.0, 0.0, 0.0);
 
-#define TASK 1
+#define TASK 2
 
 #if TASK == 0
     // example - average intensity projection (X-ray)
@@ -241,8 +241,7 @@ void main()
     // TASK 1 - maximum intensity projection
     float max_data_value = 0.f;
 
-    while (inside_volume_bounds(sampling_pos))
-    {
+    while (inside_volume_bounds(sampling_pos)) {
         float data_value = sample_data_volume(sampling_pos);
         max_data_value = max(data_value, max_data_value);
         sampling_pos  += ray_increment;
@@ -253,6 +252,20 @@ void main()
 #if TASK == 2 
     // TASK 2: first-hit iso-surface raycasting
 
+    float prev_data_value = sample_data_volume(sampling_pos);
+    out_col = vec4(vec3(0.f), 1.0);
+
+    while (inside_volume_bounds(sampling_pos)) {
+        sampling_pos  += ray_increment;
+
+        float data_value = sample_data_volume(sampling_pos);
+
+        if (sign(data_value - iso_value) != sign(prev_data_value - iso_value)) {
+            out_col.xyz = vec3(1, 0, 1);
+            break;
+        }
+        prev_data_value = data_value;
+    }
     // Code snippet for TASK 3 - should be executed only when an iso-surface intersection is found
     //#if ENABLE_LIGHTING
     //        vec3 gradient = calculate_gradient(sampling_pos);
