@@ -1,7 +1,7 @@
 #version 150
 #extension GL_ARB_explicit_attrib_location : require
 
-//#define TASK 0
+#define TASK 0
 #define ENABLE_LIGHTING 0
 #define ENABLE_BINARY_SEARCH 0
 #define USE_GRADIENT_VOLUME 0
@@ -95,14 +95,18 @@ vec3 calculate_gradient(vec3 in_sampling_pos)
     vec3 obj_to_tex = vec3(1.0) / max_bounds;
     return texture(gradient_volume_texture, in_sampling_pos * obj_to_tex).xyz;
 #else
-
-
-
     // TASK 3: calculate the gradient (by sampling the data volume) using the central differences method
-    
-    return vec3(0,0,0); // placeholder - remove in your implementation
+    vec3 gradient = vec3(0.);
+    float step = 1. / 256.;
 
-
+    for (int i = 0; i < 3; ++i) {
+        vec3 increment = vec3(0.);
+        increment[i] = step;
+        vec3 v_pos = in_sampling_pos + increment;
+        vec3 v_neg = in_sampling_pos - increment;
+        gradient[i] = (sample_data_volume(v_pos) - sample_data_volume(v_neg)) / (2 * step);
+    }
+    return gradient;
 #endif
 }
 
@@ -189,8 +193,6 @@ void main()
     // Now we define a variable which will hold the final colour that the ray produces
     vec4 out_col = vec4(0.0, 0.0, 0.0, 0.0);
 
-#define TASK 2
-
 #if TASK == 0
     // example - average intensity projection (X-ray)
     // In the average intensity projection method, each ray calculates the mean intensity value that it encounters while traversing the volume.
@@ -249,7 +251,7 @@ void main()
     out_col = vec4(vec3(max_data_value), 1.f);
     #endif
 
-#if TASK == 2 
+#if TASK == 2
     // TASK 2: first-hit iso-surface raycasting
 
     float prev_data_value = sample_data_volume(sampling_pos);
@@ -262,22 +264,20 @@ void main()
 
         if (sign(data_value - iso_value) != sign(prev_data_value - iso_value)) {
             out_col.xyz = vec3(1, 0, 1);
+            // Code snippet for TASK 3 - should be executed only when an iso-surface intersection is found
+            #if ENABLE_LIGHTING
+                vec3 gradient = calculate_gradient(sampling_pos);
+                vec3 lighting = calculate_illumination(sampling_pos, -gradient, ray_direction);
+                out_col.xyz *= vec3(lighting);
+            #endif
             break;
         }
         prev_data_value = data_value;
     }
-    // Code snippet for TASK 3 - should be executed only when an iso-surface intersection is found
-    //#if ENABLE_LIGHTING
-    //        vec3 gradient = calculate_gradient(sampling_pos);
-    //        vec3 lighting = calculate_illumination(sampling_pos, -gradient, ray_direction);
-    //        out_col *= vec4(lighting, 1.0);
-    //#endif
 
     // preprocessor directives for TASK 4
     //#if ENABLE_BINARY_SEARCH
     //#endif
-
-
 #endif
 
 
