@@ -1,5 +1,12 @@
 .idea
 *.zip
+*.pdf
+
+cmake-build-debug
+cmake-build-release
+A5/data
+A5/**/doc
+A5/**/docs
 
 # Logs
 logs
