@@ -169,6 +169,7 @@ vec3 binary_search_for_isosurface_intersection(vec3 lower_pos, vec3 upper_pos) {
 // main function
 // ---------------------------------------------------------------------------------
 
+const float opacity_epsilon = 0.00390625;
 
 void main()
 {
@@ -268,6 +269,7 @@ void main()
     }
     //return if no iso surface found
     if (out_col.xyz == 0.) {
+        FragColor = out_col;
         return;
     }
     #if ENABLE_BINARY_SEARCH
@@ -281,10 +283,27 @@ void main()
     vec3 lighting = calculate_illumination(sampling_pos, -gradient, ray_direction);
     out_col.xyz *= vec3(lighting);
     #endif
+    #endif
 
     #if TASK == 5
-    // TASK 5: first-hit iso-surface raycasting            
-    #endif
+    // TASK 5: Front-to-Back Compositing
+    vec3 accumulated_intensity = vec3(0.);
+    float opacity = 0;
+
+    while (inside_volume_bounds(sampling_pos)) {
+        float data_value = sample_data_volume(sampling_pos);
+        vec4 color_and_opacity = get_color_and_opacity_for_data_value_from_transfer_function(data_value);
+        vec3 intensity_at_p = color_and_opacity.xyz * color_and_opacity.w;
+
+        accumulated_intensity += (1 - opacity) * intensity_at_p;
+        opacity = 1 - (1 - opacity) * (1 - color_and_opacity.w);
+
+        if (opacity >= 1 - opacity_epsilon) {
+            break;
+        }
+        sampling_pos  += ray_increment;
+    }
+    out_col = vec4(accumulated_intensity, opacity);
     #endif
 
     // assign the calculated color value as the output colour of this fragment
