@@ -83,18 +83,17 @@ vec4 get_color_and_opacity_for_data_value_from_transfer_function(float data_valu
 }
 
 
-
 // INPUT: sampling position
 // OUTPUT: the gradient of the volume at the given sample position
 vec3 calculate_gradient(vec3 in_sampling_pos)
 {
-// If 'Use pre-calculated gradients' is selected, the gradient will be sampled from a pre-calculated gradient volume
-// This function is for debugging purposes, and checking your implementation of task 3
-#if USE_GRADIENT_VOLUME
+    // If 'Use pre-calculated gradients' is selected, the gradient will be sampled from a pre-calculated gradient volume
+    // This function is for debugging purposes, and checking your implementation of task 3
+    #if USE_GRADIENT_VOLUME
 
     vec3 obj_to_tex = vec3(1.0) / max_bounds;
     return texture(gradient_volume_texture, in_sampling_pos * obj_to_tex).xyz;
-#else
+    #else
     // TASK 3: calculate the gradient (by sampling the data volume) using the central differences method
     vec3 gradient = vec3(0.);
     float step = 1. / 256.;
@@ -107,7 +106,7 @@ vec3 calculate_gradient(vec3 in_sampling_pos)
         gradient[i] = (sample_data_volume(v_pos) - sample_data_volume(v_neg)) / (2 * step);
     }
     return gradient;
-#endif
+    #endif
 }
 
 
@@ -132,9 +131,9 @@ vec3 calculate_illumination(vec3 in_sampling_pos, vec3 surface_normal, vec3 ray_
     float specular = pow(spec, light_shininess);
 
     vec3 shade_col = light_ambient_reflection_constant * light_ambient_color
-                + light_diffuse_reflection_constant * light_diffuse_color * lambertian
-                + light_specular_reflection_constant * light_specular_color * specular
-                ;
+    + light_diffuse_reflection_constant * light_diffuse_color * lambertian
+    + light_specular_reflection_constant * light_specular_color * specular
+    ;
 
     return shade_col;
 }
@@ -193,7 +192,7 @@ void main()
     // Now we define a variable which will hold the final colour that the ray produces
     vec4 out_col = vec4(0.0, 0.0, 0.0, 0.0);
 
-#if TASK == 0
+    #if TASK == 0
     // example - average intensity projection (X-ray)
     // In the average intensity projection method, each ray calculates the mean intensity value that it encounters while traversing the volume.
 
@@ -205,8 +204,8 @@ void main()
     // now we start a while loop representing the ray's traversal of the volume.
     // in each iteration of the loop, we update the sampling position, adding a small shift in line with the direction of the ray.
     // the loop terminates when the sampling position is outside the volume boundary, which we check with the 'inside_volume_bounds' function
-    while (inside_volume_bounds(sampling_pos)) 
-    {      
+    while (inside_volume_bounds(sampling_pos))
+    {
         // to determine the intensity at the current point p, we first need to retrieve a data value from the volume at p.
         // this is made possible by a 'sample_data_volume' function, which takes the current position, 
         // samples a value from 3D texture holding the volume data, and returns that value as a float in range [0,1].
@@ -236,10 +235,10 @@ void main()
         out_col = vec4(0.f);
     }
 
-#endif
+    #endif
 
-   
-#if TASK == 1 
+
+    #if TASK == 1
     // TASK 1 - maximum intensity projection
     float max_data_value = 0.f;
 
@@ -251,7 +250,7 @@ void main()
     out_col = vec4(vec3(max_data_value), 1.f);
     #endif
 
-#if TASK == 2
+    #if TASK == 2
     // TASK 2: first-hit iso-surface raycasting
 
     float prev_data_value = sample_data_volume(sampling_pos);
@@ -259,36 +258,34 @@ void main()
 
     while (inside_volume_bounds(sampling_pos)) {
         sampling_pos  += ray_increment;
-
         float data_value = sample_data_volume(sampling_pos);
 
         if (sign(data_value - iso_value) != sign(prev_data_value - iso_value)) {
             out_col.xyz = vec3(1, 0, 1);
-            // Code snippet for TASK 3 - should be executed only when an iso-surface intersection is found
-            #if ENABLE_LIGHTING
-                vec3 gradient = calculate_gradient(sampling_pos);
-                vec3 lighting = calculate_illumination(sampling_pos, -gradient, ray_direction);
-                out_col.xyz *= vec3(lighting);
-            #endif
             break;
         }
         prev_data_value = data_value;
     }
-
+    //return if no iso surface found
+    if (out_col.xyz == 0.) {
+        return;
+    }
+    #if ENABLE_BINARY_SEARCH
     // preprocessor directives for TASK 4
-    //#if ENABLE_BINARY_SEARCH
-    //#endif
-#endif
+    sampling_pos = binary_search_for_isosurface_intersection(sampling_pos - ray_increment, sampling_pos);
+    #endif
 
+    #if ENABLE_LIGHTING
+    // Code snippet for TASK 3 - should be executed only when an iso-surface intersection is found
+    vec3 gradient = calculate_gradient(sampling_pos);
+    vec3 lighting = calculate_illumination(sampling_pos, -gradient, ray_direction);
+    out_col.xyz *= vec3(lighting);
+    #endif
 
-
-
-#if TASK == 5 
+    #if TASK == 5
     // TASK 5: first-hit iso-surface raycasting            
-#endif
-
-    
-
+    #endif
+    #endif
 
     // assign the calculated color value as the output colour of this fragment
     FragColor = out_col;
